@@ -26,12 +26,19 @@ export class VideoExtractor implements PipelineStage<string, ProcessedEvent[]> {
   }
 
   async process(sessionId: string): Promise<ProcessedEvent[]> {
-    const videoPath = path.join(this.dataDir, `${sessionId}.guac.m4v`);
     const events: ProcessedEvent[] = [];
-
-    // Check if video file exists
-    if (!fs.existsSync(videoPath)) {
-      console.error(`Video file not found: ${videoPath}`);
+    
+    // Try both video formats
+    const mp4Path = path.join(this.dataDir, sessionId, `recording.mp4`);
+    const m4vPath = path.join(this.dataDir, `${sessionId}.guac.m4v`);
+    
+    let videoPath: string;
+    if (fs.existsSync(mp4Path)) {
+      videoPath = mp4Path;
+    } else if (fs.existsSync(m4vPath)) {
+      videoPath = m4vPath;
+    } else {
+      console.error(`No video file found for session ${sessionId}`);
       return events;
     }
 

@@ -121,6 +121,7 @@ export class MessageFormatter implements PipelineStage<ProcessedEvent[], Message
                 case "mouseclick":
                 case "type":
                 case "hotkey":
+                case "mousewheel":
                     let action = "";
                     switch (event.type) {
                         case "mousedrag":
@@ -137,6 +138,9 @@ export class MessageFormatter implements PipelineStage<ProcessedEvent[], Message
                             break;
                         case "hotkey":
                             action = `hotkey("${event.data.text}")`;
+                            break;
+                        case "mousewheel":
+                            action = `scroll(${event.data.delta})`;
                             break;
                     }
                     if (action) {
