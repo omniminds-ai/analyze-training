@@ -26,19 +26,37 @@ const { values } = parseArgs({
     sessions: {
       short: 's',
       type: 'string'
+    },
+    input: {
+      short: 'i',
+      type: 'string'
     }
   },
   strict: true,
   allowPositionals: true
 });
 
-const dataDir = values.data || '.';
-const sessions = values.sessions?.split(',') || [];
-const outDir = values.out || '.';
+// Handle both input formats
+let dataDir: string;
+let sessions: string[];
+let outDir: string;
+
+if (values.input) {
+  // New format: -i directory
+  const inputPath = path.resolve(values.input);
+  dataDir = path.dirname(inputPath);
+  sessions = [path.basename(inputPath)];
+  outDir = dataDir;
+} else {
+  // Original format: -d data -s sessions -o output
+  dataDir = values.data || '.';
+  sessions = values.sessions?.split(',') || [];
+  outDir = values.out || '.';
+}
 
 const pipeline = new Pipeline({
   dataDir: dataDir,
-  outputDir: dataDir,
+  outputDir: outDir,
   sessionIds: sessions,
   extractors: [
     new VideoExtractor(dataDir),
@@ -56,7 +74,7 @@ const pipeline = new Pipeline({
 for (const session of sessions) {
   const results = await pipeline.process(session);
   const html = visualizeEvents(results);
-  await Bun.write(path.join(outDir, `session_${session}.html`), html);
+  await Bun.write(path.join(outDir, session, `events.html`), html);
   
   // Then format them into messages
   const formatter = new MessageFormatter();
@@ -64,5 +82,5 @@ for (const session of sessions) {
 
   // Write formatted messages visualization
   const msg_html = visualizeMessages(messages);
-  await Bun.write(path.join(outDir, `messages_${session}.html`), msg_html);
+  await Bun.write(path.join(outDir, session, `sft.html`), msg_html);
 }

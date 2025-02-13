@@ -18,13 +18,26 @@ The pipeline expects input data in one of these formats:
 
 ## Usage
 
+You can run the pipeline in two ways:
+
+1. Original format with separate data, sessions, and output directories:
 ```bash
 bun run src/index.ts -o output_dir -s session_id1,session_id2 -d data_directory
 bun run src/index.ts -o output_dir -s 20250211_215443 -d data
 ```
 
+2. Simplified format using the current directory:
+```bash
+cd path/to/session_directory
+bun run src/index.ts -i .
+```
+
 ### Arguments
 
+Original format:
 - `-o, --output`: Directory to save processed output
 - `-s, --sessions`: Comma-separated list of session IDs to process
 - `-d, --data`: Directory containing the input data files
+
+Simplified format:
+- `-i, --input`: Session directory to process. The parent directory will be used as both data and output directory.

@@ -2,12 +2,24 @@ import { readFileSync } from "fs";
 import { PipelineStage, ProcessedEvent } from "../../shared/types";
 import { join } from "path";
 
+type KeyId = 
+  | 'Escape' | 'Return' | 'Backspace' | 'Left' | 'Right' | 'Up' | 'Down' | 'Space'
+  | 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G' | 'H' | 'I' | 'J' | 'K' | 'L' | 'M'
+  | 'N' | 'O' | 'P' | 'Q' | 'R' | 'S' | 'T' | 'U' | 'V' | 'W' | 'X' | 'Y' | 'Z'
+  | 'F1' | 'F2' | 'F3' | 'F4' | 'F5' | 'F6' | 'F7' | 'F8' | 'F9' | 'F10' | 'F11' | 'F12'
+  | 'Zero' | 'One' | 'Two' | 'Three' | 'Four' | 'Five' | 'Six' | 'Seven' | 'Eight' | 'Nine'
+  | 'Shift' | 'LeftCtrl' | 'RightCtrl' | 'LeftAlt' | 'RightAlt'
+  | 'CapsLock' | 'Pause' | 'PageUp' | 'PageDown' | 'PrintScreen' | 'Insert' | 'End' | 'Home' | 'Delete'
+  | 'Add' | 'Subtract' | 'Multiply' | 'Separator' | 'Decimal' | 'Divide'
+  | 'BackTick' | 'BackSlash' | 'ForwardSlash' | 'Plus' | 'Minus' | 'FullStop' | 'Comma'
+  | 'Tab' | 'Numlock' | 'LeftSquareBracket' | 'RightSquareBracket' | 'SemiColon' | 'Apostrophe' | 'Hash';
+
 interface InputEvent {
   event: string;
   data: {
     x?: number;
     y?: number;
-    key?: string;
+    key?: KeyId;
     button?: string;
     delta?: number;
     id?: number;
@@ -19,18 +31,89 @@ interface InputEvent {
 }
 
 export class GymDesktopExtractor implements PipelineStage<string, ProcessedEvent[]> {
+  private symbolMap: { [key in KeyId]?: string } = {
+    // Regular symbols
+    'Space': ' ',
+    'BackTick': '`',
+    'BackSlash': '\\',
+    'ForwardSlash': '/',
+    'Plus': '+',
+    'Minus': '-',
+    'FullStop': '.',
+    'Comma': ',',
+    'LeftSquareBracket': '[',
+    'RightSquareBracket': ']',
+    'SemiColon': ';',
+    'Apostrophe': "'",
+    'Hash': '#',
+    'Add': '+',
+    'Subtract': '-',
+    'Multiply': '*',
+    'Divide': '/',
+    'Decimal': '.',
+    // Numbers
+    'Zero': '0',
+    'One': '1',
+    'Two': '2',
+    'Three': '3',
+    'Four': '4',
+    'Five': '5',
+    'Six': '6',
+    'Seven': '7',
+    'Eight': '8',
+    'Nine': '9'
+  };
+
+  private shiftSymbolMap: { [key in KeyId]?: string } = {
+    // Shifted numbers
+    'Zero': ')',
+    'One': '!',
+    'Two': '@',
+    'Three': '#',
+    'Four': '$',
+    'Five': '%',
+    'Six': '^',
+    'Seven': '&',
+    'Eight': '*',
+    'Nine': '(',
+    // Shifted symbols
+    'BackTick': '~',
+    'Minus': '_',
+    'Plus': '+',
+    'LeftSquareBracket': '{',
+    'RightSquareBracket': '}',
+    'BackSlash': '|',
+    'SemiColon': ':',
+    'Apostrophe': '"',
+    'Comma': '<',
+    'FullStop': '>',
+    'ForwardSlash': '?'
+  };
+
   constructor(private dataDir: string) {}
 
-  private isSpecialKey(key: string): boolean {
-    const specialKeys = new Set([
-      'Shift', 'Control', 'Alt', 'Meta',
-      'Enter', 'Backspace', 'Tab', 'Escape',
-      'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown',
+  private isSpecialKey(key: KeyId): boolean {
+    const specialKeys = new Set<KeyId>([
+      'Shift',
+      'LeftCtrl', 'RightCtrl',
+      'LeftAlt', 'RightAlt',
+      'Return', 'Backspace', 'Tab', 'Escape',
+      'Left', 'Right', 'Up', 'Down',
       'Home', 'End', 'PageUp', 'PageDown',
       'Insert', 'Delete',
-      'F1', 'F2', 'F3', 'F4', 'F5', 'F6', 'F7', 'F8', 'F9', 'F10', 'F11', 'F12'
+      'F1', 'F2', 'F3', 'F4', 'F5', 'F6', 'F7', 'F8', 'F9', 'F10', 'F11', 'F12',
+      'CapsLock', 'Pause', 'PrintScreen', 'Numlock',
     ]);
-    return specialKeys.has(key) || key.startsWith('F');
+    return specialKeys.has(key);
+  }
+
+  private isComboKey(key: KeyId): boolean {
+    const specialKeys = new Set<KeyId>([
+      'Shift',
+      'LeftCtrl', 'RightCtrl',
+      'LeftAlt', 'RightAlt'
+    ]);
+    return specialKeys.has(key);
   }
 
   private resamplePoints(
@@ -87,9 +170,11 @@ export class GymDesktopExtractor implements PipelineStage<string, ProcessedEvent
     let mouseDownTime: number | null = null;
     let mouseDownPos: { x: number; y: number } | null = null;
     let accumulatedPoints: Array<{ time: number; x: number; y: number }> = [];
-    let activeModifiers = new Set<string>();
+    let activeModifiers = new Set<KeyId>();
+    let sequenceModifiers = new Set<KeyId>();
     let currentText = '';
     let textStartTime: number | null = null;
+    let lastKeyTime: number | null = null;
     let lastKnownPos: { x: number; y: number } | null = null;
 
     const CLICK_THRESHOLD_PX = 5;
@@ -104,17 +189,28 @@ export class GymDesktopExtractor implements PipelineStage<string, ProcessedEvent
         });
         currentText = '';
         textStartTime = null;
+        sequenceModifiers.clear();
       }
     };
 
+    if (events.length === 0) return [];
+    const epoch = events[0].time;
+
     for (const event of events) {
+      const time = event.time - epoch;
+      
+      // Check if we need to flush text based on time since last key
+      if (currentText && lastKeyTime !== null && time - lastKeyTime > 1000) {
+        flushText();
+      }
+      
       switch (event.event) {
         case 'mousemove': {
           if (event.data.x !== undefined && event.data.y !== undefined) {
             lastKnownPos = { x: event.data.x, y: event.data.y };
             if (mouseDown) {
               accumulatedPoints.push({
-                time: event.time - (mouseDownTime || event.time),
+                time: time - (mouseDownTime || time),
                 x: event.data.x,
                 y: event.data.y
               });
@@ -124,9 +220,10 @@ export class GymDesktopExtractor implements PipelineStage<string, ProcessedEvent
         }
 
         case 'mousedown': {
+          flushText();
           if (event.data.button === 'Left' && lastKnownPos) {
             mouseDown = true;
-            mouseDownTime = event.time;
+            mouseDownTime = time;
             mouseDownPos = { ...lastKnownPos };
             accumulatedPoints = [{
               time: 0,
@@ -139,7 +236,7 @@ export class GymDesktopExtractor implements PipelineStage<string, ProcessedEvent
 
         case 'mouseup': {
           if (event.data.button === 'Left' && mouseDownPos && mouseDownTime && lastKnownPos) {
-            const duration = event.time - mouseDownTime;
+            const duration = time - mouseDownTime;
             const distance = Math.sqrt(
               Math.pow(lastKnownPos.x - mouseDownPos.x, 2) +
               Math.pow(lastKnownPos.y - mouseDownPos.y, 2)
@@ -176,28 +273,60 @@ export class GymDesktopExtractor implements PipelineStage<string, ProcessedEvent
 
         case 'keydown': {
           if (event.data.key) {
-            if (this.isSpecialKey(event.data.key)) {
-              flushText();
+            if (this.isComboKey(event.data.key)) {
               activeModifiers.add(event.data.key);
+              sequenceModifiers.add(event.data.key);
+            } else if (activeModifiers.size > 0 && !activeModifiers.has('Shift')) {
+              // Only treat as hotkey if we have non-Shift modifiers
+              let modifiers = Array.from(activeModifiers);
+              const finalKey = event.data.key.toString().toLowerCase();
+              const hotkeyStr = [...modifiers, finalKey].join('-');
               
-              // Only create hotkey event if it's not just a modifier
-              if (!['Shift', 'Control', 'Alt', 'Meta'].includes(event.data.key)) {
-                const modifiers = Array.from(activeModifiers);
-                const hotkeyStr = modifiers.length > 1 
-                  ? `${modifiers.slice(0, -1).join('-')}-${modifiers[modifiers.length - 1]}`
-                  : modifiers[0];
+              processedEvents.push({
+                type: 'hotkey',
+                timestamp: time,
+                data: { text: hotkeyStr }
+              });
+              
+              // Clear modifiers after using them
+              activeModifiers.clear();
+              sequenceModifiers.clear();
+            } else if (this.isSpecialKey(event.data.key)) {
+              flushText();
+              processedEvents.push({
+                type: 'hotkey',
+                timestamp: time,
+                data: { text: event.data.key }
+              });
+            } else {
+              // Handle regular typing, including Shift+letter for capitals
+              const hasShift = activeModifiers.has('Shift');
+              const mappedKey = hasShift 
+                ? this.shiftSymbolMap[event.data.key] || this.symbolMap[event.data.key]
+                : this.symbolMap[event.data.key];
                 
-                processedEvents.push({
-                  type: 'hotkey',
-                  timestamp: event.time,
-                  data: { text: hotkeyStr }
-                });
+              if (mappedKey) {
+                // Symbol or shifted symbol - output the mapped character
+                const charToAdd = mappedKey;
+                if (!textStartTime) {
+                  textStartTime = time;
+                }
+                lastKeyTime = time;
+                currentText = !currentText ? charToAdd : currentText + charToAdd;
+              } else {
+                // Letter key - handle case based on Shift
+                const isLetter = /^[A-Z]$/.test(event.data.key.toString());
+                const hasShift = activeModifiers.has('Shift');
+                const charToAdd = isLetter 
+                  ? (hasShift ? event.data.key.toString() : event.data.key.toString().toLowerCase())
+                  : event.data.key.toString().toLowerCase();
+                
+                if (!textStartTime) {
+                  textStartTime = time;
+                }
+                lastKeyTime = time;
+                currentText = !currentText ? charToAdd : currentText + charToAdd;
               }
-            } else if (activeModifiers.size === 0) {
-              if (!textStartTime) {
-                textStartTime = event.time;
-              }
-              currentText += event.data.key;
             }
           }
           break;
@@ -206,15 +335,29 @@ export class GymDesktopExtractor implements PipelineStage<string, ProcessedEvent
         case 'keyup': {
           if (event.data.key && this.isSpecialKey(event.data.key)) {
             activeModifiers.delete(event.data.key);
+            
+            // If all modifiers are released and we have a sequence to emit
+            if (activeModifiers.size === 0) {
+              if(sequenceModifiers.size > 0 && currentText === '') {
+                const modifierStr = Array.from(sequenceModifiers).join('-');
+                processedEvents.push({
+                  type: 'hotkey',
+                  timestamp: time,
+                  data: { text: modifierStr }
+                });
+              }
+              sequenceModifiers.clear();
+            }
           }
           break;
         }
 
         case 'mousewheel': {
+          flushText();
           if (event.data.delta !== undefined) {
             processedEvents.push({
               type: 'mousewheel',
-              timestamp: event.time,
+              timestamp: time,
               data: { delta: event.data.delta }
             });
           }
