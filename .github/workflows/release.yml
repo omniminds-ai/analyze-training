@@ -14,11 +14,15 @@ jobs:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
 
-      # install and run build
       - name: Install Dependencies
         run: bun install
       - name: Build Pipeline for All Operating Systems
         run: bun run build
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          path: target/
+          compression-level: 0
 
   release:
     needs: [build]
