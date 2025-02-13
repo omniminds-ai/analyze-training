@@ -1,12 +1,13 @@
-name: my-workflow
+name: Build & Release
+
+on:
+  push:
+    branches: [main]
+  pr:
+    branches: [main]
 
 jobs:
   build:
-    on:
-      push:
-        branches: [main]
-      pr:
-        branches: [main]
     name: Build
     runs-on: ubuntu-latest
     steps:
@@ -20,9 +21,6 @@ jobs:
         run: bun run build
 
   release:
-    on:
-      push:
-        branches: [main]
     needs: [build]
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
