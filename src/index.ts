@@ -30,6 +30,10 @@ const { values } = parseArgs({
     input: {
       short: 'i',
       type: 'string'
+    },
+    format: {
+      short: 'f',
+      type: 'string'
     }
   },
   strict: true,
@@ -40,6 +44,7 @@ const { values } = parseArgs({
 let dataDir: string;
 let sessions: string[];
 let outDir: string;
+const format: string = values.format || 'web';
 
 if (values.input) {
   // New format: -i directory
@@ -60,23 +65,28 @@ const pipeline = new Pipeline({
   sessionIds: sessions,
   extractors: [
     new VideoExtractor(dataDir),
-    new GymDesktopExtractor(dataDir)
-    // new GuacExtractor(dataDir),
-    // new EventExtractor(dataDir)
+    format === 'desktop'
+      ? new GymDesktopExtractor(dataDir)
+      : (new GuacExtractor(dataDir), new EventExtractor(dataDir))
   ],
-  augmenters: [
-    // new DenseCaptionAugmenter(1),
-    // new StateTransitionAugmenter(1),
-    // new StructuredDataAugmenter(1)
-  ]
+  augmenters:
+    format === 'desktop'
+      ? []
+      : [
+          new DenseCaptionAugmenter(1),
+          new StateTransitionAugmenter(1),
+          new StructuredDataAugmenter(1)
+        ]
 });
+
+console.log(`Starting processing of ${sessions.length} sessions...`);
 
 for (const session of sessions) {
   const results = await pipeline.process(session);
   const html = visualizeEvents(results);
   await Bun.write(path.join(outDir, session, `results.html`), html);
   await Bun.write(path.join(outDir, session, `results.json`), JSON.stringify(results, null, 2));
-  
+
   // Then format them into messages
   const formatter = new MessageFormatter();
   const messages = await formatter.process(results);
@@ -86,3 +96,5 @@ for (const session of sessions) {
   await Bun.write(path.join(outDir, session, `sft.html`), msg_html);
   await Bun.write(path.join(outDir, session, `sft.json`), JSON.stringify(messages, null, 2));
 }
+
+console.log(`Wrote sessions to ${outDir}`);
