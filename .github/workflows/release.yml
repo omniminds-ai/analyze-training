@@ -31,9 +31,29 @@ jobs:
     needs: [build]
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # This is important for getting all tags
+
+      - name: Get latest tag
+        id: get_latest_tag
+        run: |
+          # Get latest tag or set to v0.0.0 if no tags exist
+          latest_tag=$(git describe --tags `git rev-list --tags --max-count=1` 2>/dev/null || echo "v0.0.0")
+          echo "Latest tag: $latest_tag"
+
+          # Extract version numbers
+          version=$(echo $latest_tag | sed 's/v//')
+          major=$(echo $version | cut -d. -f1)
+          minor=$(echo $version | cut -d. -f2)
+          patch=$(echo $version | cut -d. -f3)
+
+          # Increment patch version
+          new_patch=$((patch + 1))
+          new_tag="v$major.$minor.$new_patch"
+          echo "NEW_TAG=$new_tag" >> $GITHUB_ENV
+          echo "New tag will be: $new_tag"
 
       - name: Download all artifacts
         uses: actions/download-artifact@v4
@@ -46,10 +66,11 @@ jobs:
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: v0.0.1
-          name: Release v0.0.1
+          tag_name: ${{ env.NEW_TAG }}
+          name: Release ${{ env.NEW_TAG }}
           draft: false
           prerelease: false
           files: artifacts/artifact/*
+          generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
