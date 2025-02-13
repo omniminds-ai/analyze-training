@@ -1,12 +1,34 @@
 import fs from 'node:fs';
-import { MongoClient } from 'mongodb';
 
-if (!Bun.env.DB_URI) {
-  throw new Error('DB_URI environment variable is required');
+interface RaceSession {
+  _id: {
+    $oid: string;
+  };
+  address: string;
+  challenge: string;
+  prompt: string;
+  category: string;
+  vm_ip: string;
+  vm_port: number;
+  vm_password: string;
+  vm_region: string;
+  vm_credentials: {
+    guacToken: string;
+    guacConnectionId: string;
+    guacClientId: string;
+    username: string;
+    password: string;
+  };
+  status: string;
+  created_at: {
+    $date: string;
+  };
+  updated_at: {
+    $date: string;
+  };
+  __v: number;
+  preview: string;
 }
-
-// MongoDB setup
-const client = new MongoClient(Bun.env.DB_URI);
 
 // Retry wrapper
 const withRetry = async (fn: () => Promise<any>, retries = 3, delay = 1000) => {
@@ -69,7 +91,7 @@ const downloadGuar = (recording_id: string) =>
         return res.arrayBuffer();
       })
       .then((buffer) => {
-        if (!buffer) throw Error('No buffer found.');
+        if (!buffer) return;
         data = Buffer.from(new Uint8Array(buffer));
         if (data.includes('AccessDenied')) {
           console.log(`[${recording_id}] Access denied`);
@@ -139,21 +161,10 @@ const processBatch = async (batch: string[]) => {
 
 (async () => {
   try {
-    // Connect to MongoDB
-    await client.connect();
-    console.log('Connected to MongoDB');
-
-    const db = client.db();
-
-    // Get all race session IDs from MongoDB
-    const sessions = await db
-      .collection('race_sessions')
-      .find({}, { projection: { _id: 1 } })
-      .toArray();
-    const ids = sessions.map((session) => session._id.toString());
-
-    console.log('loaded %d ids', ids.length);
-
+    const race_sessions = (await Bun.file(
+      './data/viralmind.race_sessions.json'
+    ).json()) as RaceSession[];
+    const ids = race_sessions.map((s) => s._id.$oid);
     const batchSize = 5;
     for (let i = 0; i < ids.length; i += batchSize) {
       const batch = ids.slice(i, i + batchSize);
@@ -162,7 +173,5 @@ const processBatch = async (batch: string[]) => {
     }
   } catch (error) {
     console.error('Error:', error);
-  } finally {
-    await client.close();
   }
 })();
