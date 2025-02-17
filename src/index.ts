@@ -10,6 +10,7 @@ import { GymDesktopExtractor } from './stages/extraction/simple-extractor';
 import { MessageFormatter } from './stages/formatting/message-formatter';
 import path from 'path';
 
+import { Grader } from './stages/grading/grader';
 import { parseArgs } from 'util';
 
 const { values } = parseArgs({
@@ -34,11 +35,25 @@ const { values } = parseArgs({
     format: {
       short: 'f',
       type: 'string'
+    },
+    grade: {
+      type: 'boolean',
+      default: false
+    },
+    'chunk-size': {
+      type: 'string',
+      default: '4'
     }
   },
   strict: true,
   allowPositionals: true
 });
+
+// Check for OpenAI API key if grading
+if (values.grade && !process.env.OPENAI_API_KEY) {
+  console.error('Error: OPENAI_API_KEY environment variable is required for grading mode');
+  process.exit(1);
+}
 
 // Handle both input formats
 let dataDir: string;
@@ -59,6 +74,7 @@ if (values.input) {
   outDir = values.out || '.';
 }
 
+// Initialize pipeline for both modes
 const pipeline = new Pipeline({
   dataDir: dataDir,
   outputDir: outDir,
@@ -81,20 +97,93 @@ const pipeline = new Pipeline({
 
 console.log(`Starting processing of ${sessions.length} sessions...`);
 
-for (const session of sessions) {
-  const results = await pipeline.process(session);
-  const html = visualizeEvents(results);
-  await Bun.write(path.join(outDir, session, `results.html`), html);
-  await Bun.write(path.join(outDir, session, `results.json`), JSON.stringify(results, null, 2));
+if (values.grade) {
+  // Grading mode
+  const grader = new Grader(process.env.OPENAI_API_KEY!, parseInt(values['chunk-size']));
+  
+  for (const session of sessions) {
+    console.log(`\nProcessing session: ${session}`);
+    const sftPath = path.join(dataDir, session, 'sft.json');
+    const metaPath = path.join(dataDir, session, 'meta.json');
+    
+    // Check if sft.json exists
+    try {
+      await Bun.file(sftPath).json();
+      
+      // Grade existing sft.json
+      console.log('Found existing sft.json, grading...');
+      const result = await grader.grade(metaPath, sftPath);
+      if (result) {
+        console.log('\nGrading complete!');
+        console.log(`Score: ${result.score}`);
+        console.log('\nSummary:');
+        console.log(result.summary);
+        console.log('\nReasoning:');
+        console.log(result.reasoning);
+        
+        // Write scores to file
+        await Bun.write(
+          path.join(outDir, session, 'scores.json'),
+          JSON.stringify(result, null, 2)
+        );
+      } else {
+        console.error('Failed to grade session');
+      }
+    } catch (error) {
+      // Run normal pipeline if sft.json doesn't exist
+      console.log('No sft.json found, running pipeline...');
+      const results = await pipeline.process(session);
+      const html = visualizeEvents(results);
+      await Bun.write(path.join(outDir, session, `results.html`), html);
+      await Bun.write(path.join(outDir, session, `results.json`), JSON.stringify(results, null, 2));
+      
+      // Format messages
+      const formatter = new MessageFormatter();
+      const messages = await formatter.process(results);
 
-  // Then format them into messages
-  const formatter = new MessageFormatter();
-  const messages = await formatter.process(results);
+      // Write formatted messages
+      const msg_html = visualizeMessages(messages);
+      await Bun.write(path.join(outDir, session, `sft.html`), msg_html);
+      await Bun.write(path.join(outDir, session, `sft.json`), JSON.stringify(messages, null, 2));
+      
+      // Now grade the newly created sft.json
+      console.log('\nGrading new sft.json...');
+      const result = await grader.grade(metaPath, sftPath);
+      if (result) {
+        console.log('\nGrading complete!');
+        console.log(`Score: ${result.score}`);
+        console.log('\nSummary:');
+        console.log(result.summary);
+        console.log('\nReasoning:');
+        console.log(result.reasoning);
+        
+        // Write scores to file
+        await Bun.write(
+          path.join(outDir, session, 'scores.json'),
+          JSON.stringify(result, null, 2)
+        );
+      } else {
+        console.error('Failed to grade session');
+      }
+    }
+  }
+} else {
+  // Normal pipeline mode
+  for (const session of sessions) {
+    const results = await pipeline.process(session);
+    const html = visualizeEvents(results);
+    await Bun.write(path.join(outDir, session, `results.html`), html);
+    await Bun.write(path.join(outDir, session, `results.json`), JSON.stringify(results, null, 2));
+    
+    // Then format them into messages
+    const formatter = new MessageFormatter();
+    const messages = await formatter.process(results);
 
-  // Write formatted messages visualization
-  const msg_html = visualizeMessages(messages);
-  await Bun.write(path.join(outDir, session, `sft.html`), msg_html);
-  await Bun.write(path.join(outDir, session, `sft.json`), JSON.stringify(messages, null, 2));
+    // Write formatted messages visualization
+    const msg_html = visualizeMessages(messages);
+    await Bun.write(path.join(outDir, session, `sft.html`), msg_html);
+    await Bun.write(path.join(outDir, session, `sft.json`), JSON.stringify(messages, null, 2));
+  }
 }
 
 console.log(`Wrote sessions to ${outDir}`);
