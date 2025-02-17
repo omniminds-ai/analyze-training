@@ -42,3 +42,39 @@ bun run src/index.ts -f desktop -i .
 - `-s, --sessions`: Comma-separated list of session IDs to process
 - `-d, --data`: Directory containing the input data files
 - `-i, --input`: Session directory to process. The parent directory will be used as both data and output directory.
+
+Additional options:
+- `--grade`: Enable grading mode to evaluate task completion (requires OPENAI_API_KEY)
+- `--chunk-size`: Number of messages per chunk when grading (default: 4)
+
+### Grading Mode
+
+The pipeline includes a grading mode that evaluates task completion using GPT-4V. To use grading mode:
+
+1. Set your OpenAI API key:
+```bash
+export OPENAI_API_KEY=your_api_key_here
+```
+
+2. Run with the `--grade` flag:
+```bash
+# Grade existing sft.json files
+bun run src/index.ts -i . --grade
+
+# Or process multiple sessions
+bun run src/index.ts -d data -s session1,session2 -o output --grade
+```
+
+The grader will:
+1. Look for an existing sft.json file in each session directory
+2. If found, grade it directly
+3. If not found, run the normal pipeline first to generate sft.json, then grade it
+4. Output a scores.json file containing:
+   - A summary of completed tasks
+   - A score from 0-100
+   - Detailed reasoning for the score
+
+You can adjust the chunk size (default 4) to control how many messages are processed at once:
+```bash
+bun run src/index.ts -i . --grade --chunk-size 8
+```
