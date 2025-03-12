@@ -43,6 +43,14 @@ const { values } = parseArgs({
     'chunk-size': {
       type: 'string',
       default: '4'
+    },
+    ffmpeg: {
+      type: 'string',
+      default: 'ffmpeg'
+    },
+    ffprobe: {
+      type: 'string',
+      default: 'ffprobe'
     }
   },
   strict: true,
@@ -100,16 +108,16 @@ console.log(`Starting processing of ${sessions.length} sessions...`);
 if (values.grade) {
   // Grading mode
   const grader = new Grader(process.env.OPENAI_API_KEY!, parseInt(values['chunk-size']));
-  
+
   for (const session of sessions) {
     console.log(`\nProcessing session: ${session}`);
     const sftPath = path.join(dataDir, session, 'sft.json');
     const metaPath = path.join(dataDir, session, 'meta.json');
-    
+
     // Check if sft.json exists
     try {
       await Bun.file(sftPath).json();
-      
+
       // Grade existing sft.json
       console.log('Found existing sft.json, grading...');
       const result = await grader.grade(metaPath, sftPath);
@@ -120,12 +128,9 @@ if (values.grade) {
         console.log(result.summary);
         console.log('\nReasoning:');
         console.log(result.reasoning);
-        
+
         // Write scores to file
-        await Bun.write(
-          path.join(outDir, session, 'scores.json'),
-          JSON.stringify(result, null, 2)
-        );
+        await Bun.write(path.join(outDir, session, 'scores.json'), JSON.stringify(result, null, 2));
       } else {
         console.error('Failed to grade session');
       }
@@ -136,7 +141,7 @@ if (values.grade) {
       const html = visualizeEvents(results);
       await Bun.write(path.join(outDir, session, `results.html`), html);
       await Bun.write(path.join(outDir, session, `results.json`), JSON.stringify(results, null, 2));
-      
+
       // Format messages
       const formatter = new MessageFormatter();
       const messages = await formatter.process(results);
@@ -145,7 +150,7 @@ if (values.grade) {
       const msg_html = visualizeMessages(messages);
       await Bun.write(path.join(outDir, session, `sft.html`), msg_html);
       await Bun.write(path.join(outDir, session, `sft.json`), JSON.stringify(messages, null, 2));
-      
+
       // Now grade the newly created sft.json
       console.log('\nGrading new sft.json...');
       const result = await grader.grade(metaPath, sftPath);
@@ -156,12 +161,9 @@ if (values.grade) {
         console.log(result.summary);
         console.log('\nReasoning:');
         console.log(result.reasoning);
-        
+
         // Write scores to file
-        await Bun.write(
-          path.join(outDir, session, 'scores.json'),
-          JSON.stringify(result, null, 2)
-        );
+        await Bun.write(path.join(outDir, session, 'scores.json'), JSON.stringify(result, null, 2));
       } else {
         console.error('Failed to grade session');
       }
@@ -174,7 +176,7 @@ if (values.grade) {
     const html = visualizeEvents(results);
     await Bun.write(path.join(outDir, session, `results.html`), html);
     await Bun.write(path.join(outDir, session, `results.json`), JSON.stringify(results, null, 2));
-    
+
     // Then format them into messages
     const formatter = new MessageFormatter();
     const messages = await formatter.process(results);
