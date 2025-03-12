@@ -88,7 +88,7 @@ const pipeline = new Pipeline({
   outputDir: outDir,
   sessionIds: sessions,
   extractors: [
-    new VideoExtractor(dataDir),
+    new VideoExtractor(dataDir, values.ffmpeg, values.ffprobe),
     format === 'desktop'
       ? new GymDesktopExtractor(dataDir)
       : (new GuacExtractor(dataDir), new EventExtractor(dataDir))

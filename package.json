@@ -4,7 +4,7 @@
   "main": "process.js",
   "scripts": {
     "test": "bun test",
-    "start": "bun run src/main.ts",
+    "start": "bun run src/index.ts",
     "build:windows": "bun build --compile --target=bun-windows-x64 ./src/index.ts --outfile target/pipeline-win-x64.exe",
     "build:macos": "bun build --compile --target=bun-macos-arm64 ./src/index.ts --outfile target/pipeline-macos-arm64",
     "build:linux": "bun build --compile --target=bun-linux-x64 ./src/index.ts --outfile target/pipeline-linux-x64",
