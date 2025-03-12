@@ -4,15 +4,24 @@ import path from 'path';
 import { PipelineStage, ProcessedEvent } from '../../shared/types';
 
 export class VideoExtractor implements PipelineStage<string, ProcessedEvent[]> {
-  constructor(private dataDir: string) {}
+  constructor(
+    private dataDir: string,
+    private ffmpegPath: string = 'ffmpeg',
+    private ffprobePath: string = 'ffprobe'
+  ) {}
 
   private async extractFrame(videoPath: string, timestamp: number): Promise<string | null> {
     const outputPath = path.join(this.dataDir, 'temp', `frame_${timestamp}.jpg`);
 
     try {
-      execSync(`ffmpeg -ss ${timestamp / 1000} -i "${videoPath}" -vframes 1 -y "${outputPath}"`, {
-        stdio: ['pipe', 'pipe', 'pipe']
-      });
+      execSync(
+        `${this.ffmpegPath} -ss ${
+          timestamp / 1000
+        } -i "${videoPath}" -vframes 1 -y "${outputPath}"`,
+        {
+          stdio: ['pipe', 'pipe', 'pipe']
+        }
+      );
 
       if (!fs.existsSync(outputPath)) return null;
 
@@ -27,11 +36,11 @@ export class VideoExtractor implements PipelineStage<string, ProcessedEvent[]> {
 
   async process(sessionId: string): Promise<ProcessedEvent[]> {
     const events: ProcessedEvent[] = [];
-    
+
     // Try both video formats
     const mp4Path = path.join(this.dataDir, sessionId, `recording.mp4`);
     const m4vPath = path.join(this.dataDir, `${sessionId}.guac.m4v`);
-    
+
     let videoPath: string;
     if (fs.existsSync(mp4Path)) {
       videoPath = mp4Path;
@@ -50,7 +59,7 @@ export class VideoExtractor implements PipelineStage<string, ProcessedEvent[]> {
 
     // Get video duration
     const durationStr = execSync(
-      `ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "${videoPath}"`,
+      `${this.ffprobePath} -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "${videoPath}"`,
       { encoding: 'utf-8' }
     );
     const durationSecs = Math.floor(parseFloat(durationStr));
