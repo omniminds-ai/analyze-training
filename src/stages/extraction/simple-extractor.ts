@@ -1,27 +1,157 @@
-import { readFileSync } from "fs";
-import { PipelineStage, ProcessedEvent } from "../../shared/types";
-import { join } from "path";
+import { readFileSync } from 'fs';
+import { PipelineStage, ProcessedEvent } from '../../shared/types';
+import { join } from 'path';
 
-type KeyId = 
+type KeyId =
   // Windows Format
-  | 'Escape' | 'Return' | 'Backspace' | 'Left' | 'Right' | 'Up' | 'Down' | 'Space'
-  | 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G' | 'H' | 'I' | 'J' | 'K' | 'L' | 'M'
-  | 'N' | 'O' | 'P' | 'Q' | 'R' | 'S' | 'T' | 'U' | 'V' | 'W' | 'X' | 'Y' | 'Z'
-  | 'Zero' | 'One' | 'Two' | 'Three' | 'Four' | 'Five' | 'Six' | 'Seven' | 'Eight' | 'Nine'
-  | 'Shift' | 'LeftCtrl' | 'RightCtrl' | 'LeftAlt' | 'RightAlt'
-  | 'CapsLock' | 'Pause' | 'PageUp' | 'PageDown' | 'PrintScreen' | 'Insert' | 'End' | 'Home' | 'Delete'
-  | 'Add' | 'Subtract' | 'Multiply' | 'Separator' | 'Decimal' | 'Divide'
-  | 'BackTick' | 'BackSlash' | 'ForwardSlash' | 'Plus' | 'Minus' | 'FullStop' | 'Comma'
-  | 'Tab' | 'Numlock' | 'LeftSquareBracket' | 'RightSquareBracket' | 'SemiColon' | 'Apostrophe' | 'Hash'
+  | 'Escape'
+  | 'Return'
+  | 'Backspace'
+  | 'Left'
+  | 'Right'
+  | 'Up'
+  | 'Down'
+  | 'Space'
+  | 'A'
+  | 'B'
+  | 'C'
+  | 'D'
+  | 'E'
+  | 'F'
+  | 'G'
+  | 'H'
+  | 'I'
+  | 'J'
+  | 'K'
+  | 'L'
+  | 'M'
+  | 'N'
+  | 'O'
+  | 'P'
+  | 'Q'
+  | 'R'
+  | 'S'
+  | 'T'
+  | 'U'
+  | 'V'
+  | 'W'
+  | 'X'
+  | 'Y'
+  | 'Z'
+  | 'Zero'
+  | 'One'
+  | 'Two'
+  | 'Three'
+  | 'Four'
+  | 'Five'
+  | 'Six'
+  | 'Seven'
+  | 'Eight'
+  | 'Nine'
+  | 'Shift'
+  | 'LeftCtrl'
+  | 'RightCtrl'
+  | 'LeftAlt'
+  | 'RightAlt'
+  | 'CapsLock'
+  | 'Pause'
+  | 'PageUp'
+  | 'PageDown'
+  | 'PrintScreen'
+  | 'Insert'
+  | 'End'
+  | 'Home'
+  | 'Delete'
+  | 'Add'
+  | 'Subtract'
+  | 'Multiply'
+  | 'Separator'
+  | 'Decimal'
+  | 'Divide'
+  | 'BackTick'
+  | 'BackSlash'
+  | 'ForwardSlash'
+  | 'Plus'
+  | 'Minus'
+  | 'FullStop'
+  | 'Comma'
+  | 'Tab'
+  | 'Numlock'
+  | 'LeftSquareBracket'
+  | 'RightSquareBracket'
+  | 'SemiColon'
+  | 'Apostrophe'
+  | 'Hash'
   // Mac Format
-  | 'Alt' | 'AltGr' | 'ShiftLeft' | 'ShiftRight' | 'ControlLeft' | 'ControlRight'
-  | 'MetaLeft' | 'MetaRight' | 'Function'
-  | 'LeftArrow' | 'RightArrow' | 'UpArrow' | 'DownArrow'
-  | 'KeyA' | 'KeyB' | 'KeyC' | 'KeyD' | 'KeyE' | 'KeyF' | 'KeyG' | 'KeyH' | 'KeyI' | 'KeyJ' | 'KeyK' | 'KeyL' | 'KeyM'
-  | 'KeyN' | 'KeyO' | 'KeyP' | 'KeyQ' | 'KeyR' | 'KeyS' | 'KeyT' | 'KeyU' | 'KeyV' | 'KeyW' | 'KeyX' | 'KeyY' | 'KeyZ'
-  | 'Num0' | 'Num1' | 'Num2' | 'Num3' | 'Num4' | 'Num5' | 'Num6' | 'Num7' | 'Num8' | 'Num9'
-  | 'BackQuote' | 'Equal' | 'Minus' | 'LeftBracket' | 'RightBracket'
-  | 'Slash' | 'Dot' | 'Quote' | 'F1' | 'F2' | 'F3' | 'F4' | 'F5' | 'F6' | 'F7' | 'F8' | 'F9' | 'F10' | 'F11' | 'F12';
+  | 'Alt'
+  | 'AltGr'
+  | 'ShiftLeft'
+  | 'ShiftRight'
+  | 'ControlLeft'
+  | 'ControlRight'
+  | 'MetaLeft'
+  | 'MetaRight'
+  | 'Function'
+  | 'LeftArrow'
+  | 'RightArrow'
+  | 'UpArrow'
+  | 'DownArrow'
+  | 'KeyA'
+  | 'KeyB'
+  | 'KeyC'
+  | 'KeyD'
+  | 'KeyE'
+  | 'KeyF'
+  | 'KeyG'
+  | 'KeyH'
+  | 'KeyI'
+  | 'KeyJ'
+  | 'KeyK'
+  | 'KeyL'
+  | 'KeyM'
+  | 'KeyN'
+  | 'KeyO'
+  | 'KeyP'
+  | 'KeyQ'
+  | 'KeyR'
+  | 'KeyS'
+  | 'KeyT'
+  | 'KeyU'
+  | 'KeyV'
+  | 'KeyW'
+  | 'KeyX'
+  | 'KeyY'
+  | 'KeyZ'
+  | 'Num0'
+  | 'Num1'
+  | 'Num2'
+  | 'Num3'
+  | 'Num4'
+  | 'Num5'
+  | 'Num6'
+  | 'Num7'
+  | 'Num8'
+  | 'Num9'
+  | 'BackQuote'
+  | 'Equal'
+  | 'Minus'
+  | 'LeftBracket'
+  | 'RightBracket'
+  | 'Slash'
+  | 'Dot'
+  | 'Quote'
+  | 'F1'
+  | 'F2'
+  | 'F3'
+  | 'F4'
+  | 'F5'
+  | 'F6'
+  | 'F7'
+  | 'F8'
+  | 'F9'
+  | 'F10'
+  | 'F11'
+  | 'F12';
 
 interface InputEvent {
   event: string;
@@ -42,102 +172,102 @@ interface InputEvent {
 export class GymDesktopExtractor implements PipelineStage<string, ProcessedEvent[]> {
   private symbolMap: { [key in KeyId]?: string } = {
     // Regular symbols
-    'Space': ' ',
+    Space: ' ',
     // Windows format symbols
-    'BackTick': '`',
-    'BackSlash': '\\',
-    'ForwardSlash': '/',
-    'Plus': '+',
-    'LeftSquareBracket': '[',
-    'RightSquareBracket': ']',
-    'Apostrophe': "'",
-    'Hash': '#',
-    'Add': '+',
-    'Subtract': '-',
-    'Multiply': '*',
-    'Divide': '/',
-    'Decimal': '.',
-    'FullStop': '.',
+    BackTick: '`',
+    BackSlash: '\\',
+    ForwardSlash: '/',
+    Plus: '+',
+    LeftSquareBracket: '[',
+    RightSquareBracket: ']',
+    Apostrophe: "'",
+    Hash: '#',
+    Add: '+',
+    Subtract: '-',
+    Multiply: '*',
+    Divide: '/',
+    Decimal: '.',
+    FullStop: '.',
     // Mac format symbols
-    'BackQuote': '`',
-    'Slash': '/',
-    'Equal': '=',
-    'Dot': '.',
-    'LeftBracket': '[',
-    'RightBracket': ']',
-    'Quote': "'",
+    BackQuote: '`',
+    Slash: '/',
+    Equal: '=',
+    Dot: '.',
+    LeftBracket: '[',
+    RightBracket: ']',
+    Quote: "'",
     // Windows format numbers
-    'Zero': '0',
-    'One': '1',
-    'Two': '2',
-    'Three': '3',
-    'Four': '4',
-    'Five': '5',
-    'Six': '6',
-    'Seven': '7',
-    'Eight': '8',
-    'Nine': '9',
+    Zero: '0',
+    One: '1',
+    Two: '2',
+    Three: '3',
+    Four: '4',
+    Five: '5',
+    Six: '6',
+    Seven: '7',
+    Eight: '8',
+    Nine: '9',
     // Mac format numbers
-    'Num0': '0',
-    'Num1': '1',
-    'Num2': '2',
-    'Num3': '3',
-    'Num4': '4',
-    'Num5': '5',
-    'Num6': '6',
-    'Num7': '7',
-    'Num8': '8',
-    'Num9': '9',
+    Num0: '0',
+    Num1: '1',
+    Num2: '2',
+    Num3: '3',
+    Num4: '4',
+    Num5: '5',
+    Num6: '6',
+    Num7: '7',
+    Num8: '8',
+    Num9: '9',
     // Shared symbols
-    'Minus': '-',
-    'Comma': ',',
-    'SemiColon': ';'
+    Minus: '-',
+    Comma: ',',
+    SemiColon: ';'
   };
 
   private shiftSymbolMap: { [key in KeyId]?: string } = {
     // Windows format numbers
-    'Zero': ')',
-    'One': '!',
-    'Two': '@',
-    'Three': '#',
-    'Four': '$',
-    'Five': '%',
-    'Six': '^',
-    'Seven': '&',
-    'Eight': '*',
-    'Nine': '(',
+    Zero: ')',
+    One: '!',
+    Two: '@',
+    Three: '#',
+    Four: '$',
+    Five: '%',
+    Six: '^',
+    Seven: '&',
+    Eight: '*',
+    Nine: '(',
     // Mac format numbers
-    'Num0': ')',
-    'Num1': '!',
-    'Num2': '@',
-    'Num3': '#',
-    'Num4': '$',
-    'Num5': '%',
-    'Num6': '^',
-    'Num7': '&',
-    'Num8': '*',
-    'Num9': '(',
+    Num0: ')',
+    Num1: '!',
+    Num2: '@',
+    Num3: '#',
+    Num4: '$',
+    Num5: '%',
+    Num6: '^',
+    Num7: '&',
+    Num8: '*',
+    Num9: '(',
     // Windows format symbols
-    'BackTick': '~',
-    'Plus': '+',
-    'LeftSquareBracket': '{',
-    'RightSquareBracket': '}',
-    'BackSlash': '|',
-    'Apostrophe': '"',
-    'ForwardSlash': '?',
-    'FullStop': '>',
+    BackTick: '~',
+    Plus: '+',
+    LeftSquareBracket: '{',
+    RightSquareBracket: '}',
+    BackSlash: '|',
+    Apostrophe: '"',
+    ForwardSlash: '?',
+    FullStop: '>',
     // Mac format symbols
-    'BackQuote': '~',
-    'Equal': '+',
-    'LeftBracket': '{',
-    'RightBracket': '}',
-    'Slash': '?',
-    'Dot': '>',
-    'Quote': '"',
+    BackQuote: '~',
+    Equal: '+',
+    LeftBracket: '{',
+    RightBracket: '}',
+    Slash: '?',
+    Dot: '>',
+    Quote: '"',
     // Shared symbols
-    'Minus': '_',
-    'Comma': '<',
-    'SemiColon': ':'
+    Minus: '_',
+    Comma: '<',
+    SemiColon: ':'
   };
 
   constructor(private dataDir: string) {}
@@ -145,18 +275,56 @@ export class GymDesktopExtractor implements PipelineStage<string, ProcessedEvent
   private isSpecialKey(key: KeyId): boolean {
     const specialKeys = new Set<KeyId>([
       // Windows format
-      'Shift', 'LeftCtrl', 'RightCtrl', 'LeftAlt', 'RightAlt',
-      'Return', 'Backspace', 'Tab', 'Escape',
-      'Left', 'Right', 'Up', 'Down',
-      'Home', 'End', 'PageUp', 'PageDown',
-      'Insert', 'Delete',
-      'F1', 'F2', 'F3', 'F4', 'F5', 'F6', 'F7', 'F8', 'F9', 'F10', 'F11', 'F12',
-      'CapsLock', 'Pause', 'PrintScreen', 'Numlock',
+      'Shift',
+      'LeftCtrl',
+      'RightCtrl',
+      'LeftAlt',
+      'RightAlt',
+      'Return',
+      'Backspace',
+      'Tab',
+      'Escape',
+      'Left',
+      'Right',
+      'Up',
+      'Down',
+      'Home',
+      'End',
+      'PageUp',
+      'PageDown',
+      'Insert',
+      'Delete',
+      'F1',
+      'F2',
+      'F3',
+      'F4',
+      'F5',
+      'F6',
+      'F7',
+      'F8',
+      'F9',
+      'F10',
+      'F11',
+      'F12',
+      'CapsLock',
+      'Pause',
+      'PrintScreen',
+      'Numlock',
       // Mac format
-      'ShiftLeft', 'ShiftRight', 'ControlLeft', 'ControlRight',
-      'Alt', 'AltGr', 'MetaLeft', 'MetaRight',
-      'LeftArrow', 'RightArrow', 'UpArrow', 'DownArrow',
-      'Function', 'CapsLock'
+      'ShiftLeft',
+      'ShiftRight',
+      'ControlLeft',
+      'ControlRight',
+      'Alt',
+      'AltGr',
+      'MetaLeft',
+      'MetaRight',
+      'LeftArrow',
+      'RightArrow',
+      'UpArrow',
+      'DownArrow',
+      'Function',
+      'CapsLock'
     ]);
     return specialKeys.has(key);
   }
@@ -164,10 +332,20 @@ export class GymDesktopExtractor implements PipelineStage<string, ProcessedEvent
   private isComboKey(key: KeyId): boolean {
     const specialKeys = new Set<KeyId>([
       // Windows format
-      'Shift', 'LeftCtrl', 'RightCtrl', 'LeftAlt', 'RightAlt',
+      'Shift',
+      'LeftCtrl',
+      'RightCtrl',
+      'LeftAlt',
+      'RightAlt',
       // Mac format
-      'ShiftLeft', 'ShiftRight', 'ControlLeft', 'ControlRight',
-      'Alt', 'AltGr', 'MetaLeft', 'MetaRight'
+      'ShiftLeft',
+      'ShiftRight',
+      'ControlLeft',
+      'ControlRight',
+      'Alt',
+      'AltGr',
+      'MetaLeft',
+      'MetaRight'
     ]);
     return specialKeys.has(key);
   }
@@ -232,6 +410,7 @@ export class GymDesktopExtractor implements PipelineStage<string, ProcessedEvent
     let textStartTime: number | null = null;
     let lastKeyTime: number | null = null;
     let lastKnownPos: { x: number; y: number } | null = null;
+    let lastEventType: string | null = null;
 
     const CLICK_THRESHOLD_PX = 5;
     const CLICK_THRESHOLD_MS = 500;
@@ -254,12 +433,12 @@ export class GymDesktopExtractor implements PipelineStage<string, ProcessedEvent
 
     for (const event of events) {
       const time = event.time - epoch;
-      
+
       // Check if we need to flush text based on time since last key
       if (currentText && lastKeyTime !== null && time - lastKeyTime > 1000) {
         flushText();
       }
-      
+
       switch (event.event) {
         case 'mousemove': {
           if (event.data.x !== undefined && event.data.y !== undefined) {
@@ -281,11 +460,13 @@ export class GymDesktopExtractor implements PipelineStage<string, ProcessedEvent
             mouseDown = true;
             mouseDownTime = time;
             mouseDownPos = { ...lastKnownPos };
-            accumulatedPoints = [{
-              time: 0,
-              x: lastKnownPos.x,
-              y: lastKnownPos.y
-            }];
+            accumulatedPoints = [
+              {
+                time: 0,
+                x: lastKnownPos.x,
+                y: lastKnownPos.y
+              }
+            ];
           }
           break;
         }
@@ -295,7 +476,7 @@ export class GymDesktopExtractor implements PipelineStage<string, ProcessedEvent
             const duration = time - mouseDownTime;
             const distance = Math.sqrt(
               Math.pow(lastKnownPos.x - mouseDownPos.x, 2) +
-              Math.pow(lastKnownPos.y - mouseDownPos.y, 2)
+                Math.pow(lastKnownPos.y - mouseDownPos.y, 2)
             );
 
             if (distance <= CLICK_THRESHOLD_PX && duration <= CLICK_THRESHOLD_MS) {
@@ -337,13 +518,13 @@ export class GymDesktopExtractor implements PipelineStage<string, ProcessedEvent
               let modifiers = Array.from(activeModifiers);
               const finalKey = event.data.key.toString().toLowerCase();
               const hotkeyStr = [...modifiers, finalKey].join('-');
-              
+
               processedEvents.push({
                 type: 'hotkey',
                 timestamp: time,
                 data: { text: hotkeyStr }
               });
-              
+
               // Clear modifiers after using them
               activeModifiers.clear();
               sequenceModifiers.clear();
@@ -357,10 +538,10 @@ export class GymDesktopExtractor implements PipelineStage<string, ProcessedEvent
             } else {
               // Handle regular typing, including Shift+letter for capitals
               const hasShift = activeModifiers.has('Shift');
-              const mappedKey = hasShift 
+              const mappedKey = hasShift
                 ? this.shiftSymbolMap[event.data.key] || this.symbolMap[event.data.key]
                 : this.symbolMap[event.data.key];
-                
+
               if (mappedKey) {
                 // Symbol or shifted symbol - output the mapped character
                 const charToAdd = mappedKey;
@@ -374,10 +555,11 @@ export class GymDesktopExtractor implements PipelineStage<string, ProcessedEvent
                 const key = event.data.key.toString();
                 const isWindowsLetter = /^[A-Z]$/.test(key);
                 const isMacLetter = /^Key[A-Z]$/.test(key);
-                const hasShift = activeModifiers.has('Shift') || 
-                                activeModifiers.has('ShiftLeft') || 
-                                activeModifiers.has('ShiftRight');
-                
+                const hasShift =
+                  activeModifiers.has('Shift') ||
+                  activeModifiers.has('ShiftLeft') ||
+                  activeModifiers.has('ShiftRight');
+
                 let charToAdd;
                 if (isWindowsLetter) {
                   // Windows format: 'A' -> 'a' or 'A'
@@ -389,7 +571,7 @@ export class GymDesktopExtractor implements PipelineStage<string, ProcessedEvent
                 } else {
                   charToAdd = key.toLowerCase();
                 }
-                
+
                 if (!textStartTime) {
                   textStartTime = time;
                 }
@@ -404,10 +586,10 @@ export class GymDesktopExtractor implements PipelineStage<string, ProcessedEvent
         case 'keyup': {
           if (event.data.key && this.isSpecialKey(event.data.key)) {
             activeModifiers.delete(event.data.key);
-            
+
             // If all modifiers are released and we have a sequence to emit
             if (activeModifiers.size === 0) {
-              if(sequenceModifiers.size > 0 && currentText === '') {
+              if (sequenceModifiers.size > 0 && currentText === '') {
                 const modifierStr = Array.from(sequenceModifiers).join('-');
                 processedEvents.push({
                   type: 'hotkey',
@@ -424,14 +606,23 @@ export class GymDesktopExtractor implements PipelineStage<string, ProcessedEvent
         case 'mousewheel': {
           flushText();
           if (event.data.delta !== undefined) {
-            processedEvents.push({
-              type: 'mousewheel',
-              timestamp: time,
-              data: { delta: event.data.delta }
-            });
+            // Only add a mousewheel event if the previous event was not a mousewheel event
+            if (lastEventType !== 'mousewheel') {
+              processedEvents.push({
+                type: 'mousewheel',
+                timestamp: time,
+                data: { delta: event.data.delta }
+              });
+            }
           }
+          lastEventType = 'mousewheel';
           break;
         }
+      }
+      
+      // Update lastEventType for non-mousewheel events
+      if (event.event !== 'mousewheel') {
+        lastEventType = event.event;
       }
     }
 
