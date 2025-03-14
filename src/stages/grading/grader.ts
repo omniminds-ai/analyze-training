@@ -36,6 +36,7 @@ interface Message {
 
 interface GradeResult {
   summary: string;
+  scratchpad: string;
   score: number;
   reasoning: string;
 }
@@ -72,10 +73,16 @@ ${meta.quest.objectives.map(objective => `- ${objective}`).join('\n')}`;
     }
 
     if (isFinal) {
-      basePrompt += `\n\nThis is the final chunk. Provide a complete evaluation with three components:
+      basePrompt += `\n\nThis is the final chunk. Provide a complete evaluation with four components:
 1. A final bullet-point summary of all progress made across all chunks (use <summary></summary> tags)
-2. A harsh score from 0-100 based on task completion and efficiency (use <answer></answer> tags)
-3. Your reasoning for the score (use <reasoning></reasoning> tags)
+2. Your working notes and calculations for determining the score (use <scratchpad></scratchpad> tags)
+3. A harsh score from 0-100 based on task completion and efficiency (use <answer></answer> tags)
+4. Your reasoning for the score (use <reasoning></reasoning> tags)
+
+Scoring Instructions:
+- Each subobjective completed should be +20%
+- For subobjectives involving ordering, adding the item to cart is sufficient for completion
+- For subobjectives involving reading or summarizing, clicking the headline is sufficient for completion
 
 Example format:
 <summary>
@@ -83,6 +90,13 @@ Example format:
 • Second accomplished task
 • Third accomplished task
 </summary>
+<scratchpad>
+Working through the score calculation:
+- Completed 2 out of 5 objectives = 40%
+- Deductions for opening the wrong site twice: -20%
+- Deductions for miss-click: -1%
+Final score: 19%
+</scratchpad>
 <answer>15</answer>
 <reasoning>The score is 15 because...</reasoning>`;
     } else {
@@ -102,9 +116,25 @@ Example format:
   }
 
   private chunkMessages(messages: Message[], chunkSize: number): Message[][] {
+    // Filter out scroll messages first
+    const filteredMessages = messages.filter(msg => {
+      if (typeof msg.content === 'string') {
+        let content = msg.content;
+        // Remove python code block if present
+        if (content.startsWith('```python\n')) {
+          content = content.slice(10, -4); // Remove ```python\n and \n```
+        }
+        // Filter out if it starts with scroll
+        return !content.startsWith('scroll(');
+      }
+      // Keep all image messages
+      return true;
+    });
+
+    // Then chunk the filtered messages
     const chunks: Message[][] = [];
-    for (let i = 0; i < messages.length; i += chunkSize) {
-      chunks.push(messages.slice(i, i + chunkSize));
+    for (let i = 0; i < filteredMessages.length; i += chunkSize) {
+      chunks.push(filteredMessages.slice(i, i + chunkSize));
     }
     return chunks;
   }
@@ -249,17 +279,26 @@ ${actionCount === 0 ? "NOTE: This chunk contained no user actions, only screensh
 
         if (isFinal) {
           const summary = this.extractTags(evaluation, 'summary');
+          const scratchpad = this.extractTags(evaluation, 'scratchpad');
           const score = this.extractTags(evaluation, 'answer');
           const reasoning = this.extractTags(evaluation, 'reasoning');
 
-          if (!summary || !score || !reasoning) {
+          if (!summary || !scratchpad || !score || !reasoning) {
             console.log('Failed to parse final evaluation tags, retrying chunk...');
             i--; // Retry this chunk
             continue;
           }
 
+          console.log({
+            summary: summary,
+            scratchpad: scratchpad,
+            score: parseInt(score),
+            reasoning: reasoning
+          });
+
           return {
             summary: summary,
+            scratchpad: scratchpad,
             score: parseInt(score),
             reasoning: reasoning
           };
