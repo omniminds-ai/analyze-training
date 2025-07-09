@@ -74,18 +74,9 @@ const pipeline = new Pipeline({
   sessionIds: sessions,
   extractors: [
     new VideoExtractor(dataDir, values.ffmpeg, values.ffprobe),
-    format === 'desktop'
-      ? new GymDesktopExtractor(dataDir)
-      : (new GuacExtractor(dataDir), new EventExtractor(dataDir))
+    new GymDesktopExtractor(dataDir)
   ],
-  augmenters:
-    format === 'desktop'
-      ? []
-      : [
-          new DenseCaptionAugmenter(1),
-          new StateTransitionAugmenter(1),
-          new StructuredDataAugmenter(1)
-        ]
+  augmenters: []
 });
 
 console.log(`Starting processing of ${sessions.length} sessions...`);
