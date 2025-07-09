@@ -6,9 +6,9 @@
   "scripts": {
     "test": "bun test",
     "start": "bun run src/index.ts",
-    "build:windows": "bun build --compile --target=bun-windows-x64 ./src/index.ts --outfile target/nalyze-training-win-x64.exe",
-    "build:macos": "bun build --compile --target=bun-macos-arm64 ./src/index.ts --outfile target/nalyze-training-macos-arm64",
-    "build:linux": "bun build --compile --target=bun-linux-x64 ./src/index.ts --outfile target/nalyze-training-linux-x64",
+    "build:windows": "bun build --compile --target=bun-windows-x64 ./src/index.ts --outfile target/analyze-training-win-x64.exe",
+    "build:macos": "bun build --compile --target=bun-macos-arm64 ./src/index.ts --outfile target/analyze-training-macos-arm64",
+    "build:linux": "bun build --compile --target=bun-linux-x64 ./src/index.ts --outfile target/analyze-training-linux-x64",
     "build": "bun build:windows && bun build:macos && bun build:linux"
   },
   "author": "",
