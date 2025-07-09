@@ -16,18 +16,6 @@ import { parseArgs } from 'util';
 const { values } = parseArgs({
   args: Bun.argv,
   options: {
-    data: {
-      short: 'd',
-      type: 'string'
-    },
-    out: {
-      short: 'o',
-      type: 'string'
-    },
-    sessions: {
-      short: 's',
-      type: 'string'
-    },
     input: {
       short: 'i',
       type: 'string'
@@ -69,18 +57,15 @@ let sessions: string[];
 let outDir: string;
 const format: string = values.format || 'web';
 
-if (values.input) {
-  // New format: -i directory
-  const inputPath = path.resolve(values.input);
-  dataDir = path.dirname(inputPath);
-  sessions = [path.basename(inputPath)];
-  outDir = dataDir;
-} else {
-  // Original format: -d data -s sessions -o output
-  dataDir = values.data || '.';
-  sessions = values.sessions?.split(',') || [];
-  outDir = values.out || '.';
+// New format: -i directory
+if(!values.input) {
+  console.error('Error: --input | -i input is required.');
+  process.exit(1);
 }
+const inputPath = path.resolve(values.input);
+dataDir = path.dirname(inputPath);
+sessions = [path.basename(inputPath)];
+outDir = dataDir;
 
 // Initialize pipeline for both modes
 const pipeline = new Pipeline({
