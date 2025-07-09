@@ -1,6 +1,6 @@
-# Viralmind Data Pipeline
+# Omniminds Training Data Analyzer
 
-Use the Viralmind data pipeline to gather information about data collected with the Viralmind training gym.
+Use the Omniminds Training Data Analyzer to gather information about data collected using the [Omniminds Desktop Application](https://omniminds.ai/desktop).
 
 ## Input Data Format
 
@@ -11,11 +11,6 @@ The pipeline expects input data in one of these formats:
    - `session_id.mp4` - The video recording
    - `session_id.events.jsonl` - Event data in JSONL format
    - `session_id.meta.json` - Optional metadata about the recording
-
-2. Gym Web recordings:
-   - `session_id.events.json` - Event data
-   - `session_id.guac` - Guacamole recording file
-   - `session_id.guac.m4v` - Video recording
 
 ## Usage
 
@@ -37,10 +32,7 @@ bun run src/index.ts -f desktop -i .
 
 ### Arguments
 
-- `-o, --output`: Directory to save processed output
 - `-f, --format`: Format of the input data. Either `web` or `desktop`.
-- `-s, --sessions`: Comma-separated list of session IDs to process
-- `-d, --data`: Directory containing the input data files
 - `-i, --input`: Session directory to process. The parent directory will be used as both data and output directory.
 - `--ffmpeg`: Path to the ffmpeg binary. Defaults to `ffmpeg`.
 - `--ffprobe`: Path to the ffprobe binary. Defaults to `ffprobe`.
